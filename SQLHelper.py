@@ -58,15 +58,19 @@ def SSCreateTable(df,
         elif 'bool' in str(df[col].dtype):
             create_table += f'\n[{col}] BIT NULL,'
         elif col in chars and col in pks:
+            df[col].fillna('', inplace=True)
             max_num = df[col].map(len).max()
             create_table += f'\n[{col}] CHAR({max_num}) NOT NULL,'
         elif col in chars:
+            df[col].fillna('', inplace=True)
             max_num = df[col].map(len).max()
             create_table += f'\n[{col}] CHAR({max_num}) NULL,'
         elif col in pks:
+            df[col].fillna('', inplace=True)
             max_num = df[col].map(len).max()
             create_table += f'\n[{col}] VARCHAR({max_num+varBuff}) NOT NULL,'
         else:
+            df[col].fillna('', inplace=True)
             max_num = df[col].map(len).max()
             create_table += f'\n[{col}] VARCHAR({max_num+varBuff}) NULL,'
             

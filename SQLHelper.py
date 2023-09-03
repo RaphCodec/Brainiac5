@@ -91,7 +91,7 @@ def SSCreateTable(df,
 
     return create_table
 
-def upsert(df,
+def upsert(columns:list = [],
            table:str = None,
            insertOnly = False,
            upWhere:list=[]
@@ -102,19 +102,24 @@ def upsert(df,
 
     insert_statement = f'INSERT INTO [{table}] (\n'
     
-    for col in df.columns:
+    insert_statement += f'[{columns[0]}]\n'
+    
+    for col in columns[1:]:
         insert_statement += f',[{col}]\n'
-    insert_statement += f")\nVALUES(\n{('?,' * len(df.columns))[:-1]}\n)"
+    insert_statement += f")\nVALUES(\n{('?,' * len(columns))[:-1]}\n)"
 
     if insertOnly == True:
         return insert_statement
     
     if not upWhere:
         raise Exception(f'Upwhere Empty. Cannot Update Tabble: [{table}].')
+    
+    up_list = list(set(columns) - set(upWhere))
+    up_list.sort()
 
     update_statement = f'UPDATE [{table}]\nSET\n'
-    for col in df.columns:
-        if col not in upWhere:
+    update_statement += f'[{up_list[0]}]  = ?\n'
+    for col in up_list[1:]:
             update_statement += f',[{col}]  = ?\n'
 
     if len(upWhere) == 1:
@@ -125,4 +130,4 @@ def upsert(df,
             update_statement += f'\n[{col}] = ?\nand'
         update_statement = update_statement[:-4]
 
-    return insert_statement, update_statement    
+    return insert_statement, update_statement

@@ -18,6 +18,18 @@ data = {
 # Create Pandas DataFrame with specified data types for each column
 df = pd.DataFrame(data)
 
+def Connect(Server,Database,Driver):
+    conn = pyodbc.connect(
+        f'''
+        Driver={Driver};
+        Server={Server};
+        Database={Database};
+        Trusted_Connection=yes;
+        '''
+        )
+    cursor = conn.cursor()
+    return cursor, conn 
+
 def CreateTable(df,
                 table: str,
                 primary: str | list = None,

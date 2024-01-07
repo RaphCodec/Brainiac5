@@ -2,21 +2,6 @@ import pandas as pd
 import numpy as np
 import pyodbc
 
-# Create dummy data
-data = {
-    'Name': ['Alice', 'Bob', 'Charlie'],
-    'Age': [25, 30, 22],
-    'Height': [5.6, 6.0, 5.4],
-    'IsStudent': [True, False, True],
-    'Scores': [85.5, 90.0, 78.5],
-    'BirthDate': pd.to_datetime(['1995-03-15', '1990-08-22', '2000-05-10']),
-    'RegistrationDateTime': pd.to_datetime(['2022-01-01 08:30', '2022-01-02 10:45', '2022-01-03 12:15']),
-    'MeetingTime': pd.to_datetime(['12:30', '14:00', '11:45']).time,
-    'Weight': [62.5, 75.0, 58.3]
-}
-
-# Create Pandas DataFrame with specified data types for each column
-df = pd.DataFrame(data)
 
 def Connect(Server,Database,Driver):
     conn = pyodbc.connect(
@@ -39,7 +24,8 @@ def CreateTable(df,
                 foreignTable: str = None,
                 foreignRelated: str | list = None,
                 unique: str | list = None,
-                uniqueName: str = None
+                uniqueName: str = None,
+                charbuff: int = 10
                 ) -> str:
 
     if not isinstance(table, str):
@@ -52,7 +38,7 @@ def CreateTable(df,
     sql_data_types = {
         'int64': 'INT',
         'float64': 'FLOAT',
-        'object': 'VARCHAR(max)',
+        'object': 'VARCHAR',
         'datetime64[ns]': 'DATETIME',
         'bool': 'BIT',
     }
@@ -66,7 +52,11 @@ def CreateTable(df,
 
     for column, dtype in zip(columns, dtypes):
         sql_type = sql_data_types.get(str(dtype), 'VARCHAR(max)') #defaulting to VARCHAR(max) if no datatype is matched
-        create_table_query += f"    {column} {sql_type},\n"
+        if dtype == 'object':
+            max_length = df[column].astype(str).apply(len).max() + charbuff
+            create_table_query += f"    {column} {sql_type}({max_length}),\n"
+        else:
+            create_table_query += f"    {column} {sql_type},\n"
 
     create_table_query = create_table_query.rstrip(',\n') + "\n);"
 
@@ -136,5 +126,3 @@ def update(columns:list, table:str, where:str|list):
     '''
     return query
     
-query = CreateTable(df,'Table')
-print(query)

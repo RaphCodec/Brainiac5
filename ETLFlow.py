@@ -40,7 +40,7 @@ def CreateTable(df,
     sql_data_types = {
         'int64': 'INT',
         'float64': 'FLOAT',
-        'object': 'NVARCHAR(max)',
+        'object': 'VARCHAR(max)',
         'datetime64[ns]': 'DATETIME',
         'bool': 'BIT',
     }
@@ -53,10 +53,10 @@ def CreateTable(df,
     create_table_query = f"CREATE TABLE {table} (\n"
 
     for column, dtype in zip(columns, dtypes):
-        sql_type = sql_data_types.get(str(dtype), 'NVARCHAR(max)')
+        sql_type = sql_data_types.get(str(dtype), 'VARCHAR(max)') #defaulting to VARCHAR(max) if no datatype is matched
         create_table_query += f"    {column} {sql_type},\n"
 
-    create_table_query = create_table_query.rstrip(',\n') + "\n"
+    create_table_query = create_table_query.rstrip(',\n') + "\n);"
 
     # Adding primary key(s) if needed
     if primary is not None:
@@ -92,7 +92,7 @@ def insert(columns:list, table:str):
     Values({('?,' * len(columns))[:-1]})
     '''
 
-def update(columns:list, table:str, where:list):
+def update(columns:list, table:str, where:str|list):
     if not isinstance(columns, list):
         raise ValueError ('Columns value must be a list')
     
@@ -102,17 +102,15 @@ def update(columns:list, table:str, where:list):
     if not isinstance(columns, list):
         raise ValueError ('Where value must be a list')
     
-    
-    
     columns = [
                 value for value in columns
                 if value not in where
                ]
     
-    if len(where) > 1:
+    if isinstance(where,list):
         where = ' and, '.join([value + ' = ?' for value in where])
     else:
-        where = where[0] + ' = ?'
+        where += ' = ?'
     
     query = f'''
     UPDATE {table}

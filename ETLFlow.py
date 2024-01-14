@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pyodbc
-
+import time
 
 def Connect(Server,Database,Driver):
     conn = pyodbc.connect(
@@ -64,20 +64,20 @@ def CreateTable(df,
     if primary is not None:
         primary_key_constraint = f'CONSTRAINT {primaryName} PRIMARY KEY ' if primaryName else 'PRIMARY KEY '
         primary_keys = primary if isinstance(primary, str) else ", ".join(primary)
-        create_table_query += f'ALTER TABLE {table}\nADD {primary_key_constraint}({primary_keys});\n'
+        create_table_query += f'\nALTER TABLE {table}\nADD {primary_key_constraint}({primary_keys});\n'
 
     # Adding foreign key(s) if needed
     if foreign is not None and foreignName is not None and foreignTable is not None and foreignRelated is not None:
         foreign_key_constraint = f'CONSTRAINT {foreignName} FOREIGN KEY ' if foreignName else 'FOREIGN KEY '
         foreign_keys = foreign if isinstance(foreign, str) else ", ".join(foreign)
         foreign_related_keys = foreignRelated if isinstance(foreignRelated, str) else ", ".join(foreignRelated)
-        create_table_query += f'ALTER TABLE {table}\nADD {foreign_key_constraint}({foreign_keys})\nREFERENCES {foreignTable} ({foreign_related_keys});\n'
+        create_table_query += f'\nALTER TABLE {table}\nADD {foreign_key_constraint}({foreign_keys})\nREFERENCES {foreignTable} ({foreign_related_keys});\n'
 
     # Adding unique key(s) if needed
     if unique is not None:
         unique_constraint = f'CONSTRAINT {uniqueName} UNIQUE ' if uniqueName else 'UNIQUE '
         unique_keys = unique if isinstance(unique, str) else ", ".join(unique)
-        create_table_query += f'ALTER TABLE {table}\nADD {unique_constraint}({unique_keys});\n'
+        create_table_query += f'\nALTER TABLE {table}\nADD {unique_constraint}({unique_keys});\n'
 
     return create_table_query
 

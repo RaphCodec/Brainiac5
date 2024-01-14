@@ -1,0 +1,7 @@
+{
+    "DEST_SQL_SERVER": "",
+    "DEST_SQL_DATABASE": "",
+    "DEST_SQL_TABLE": "",
+
+    "LOG_FILE_PATH": "./Template.log.txt"
+}

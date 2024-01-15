@@ -25,7 +25,9 @@ def CreateTable(df,
                 foreignRelated: str | list = None,
                 unique: str | list = None,
                 uniqueName: str = None,
-                charbuff: int = 10
+                charbuff: int = 10,
+                saveQuery:bool = False,
+                savePath:str = None
                 ) -> str:
 
     if not isinstance(table, str):
@@ -81,6 +83,13 @@ def CreateTable(df,
         unique_constraint = f'CONSTRAINT [{uniqueName}] UNIQUE ' if uniqueName else 'UNIQUE '
         unique_keys = unique if isinstance(unique, str) else ", ".join([f'[{key}]' for key in unique])
         create_table_query += f'\nALTER TABLE [{table}]\nADD {unique_constraint}({unique_keys});\n'
+        
+    if saveQuery == True:
+        path = f'CreateTable - {table}.sql'
+        if savePath:
+            path = savePath + f'\CreateTable - {table}.sql'
+        with open(path, 'w') as sql_file:
+            sql_file.write(create_table_query)
 
     return create_table_query
 

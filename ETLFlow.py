@@ -144,7 +144,7 @@ def update(columns: list, table: str, where: str | list, saveQuery:bool = False,
     if saveQuery == True:
         path = f'UpdateQuery - {table}.sql'
         if savePath:
-            path = savePath + f'\UpdateQuery - {table}.sql'
+            path = savePath + path
         with open(path, 'w') as sql_file:
             sql_file.write(query)
 

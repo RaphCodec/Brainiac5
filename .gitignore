@@ -45,6 +45,9 @@ Thumbs.db
 # env folders #
 env/
 
+# pycache #
+__pycache__
+
 # data file #
 *.csv
 *.xlsx

@@ -93,7 +93,7 @@ def CreateTable(df,
 
     return create_table_query
 
-def insert(columns: list, table: str):
+def insert(columns: list, table: str, saveQuery:bool = False, savePath:str = None) -> str:
     if not isinstance(columns, list):
         raise ValueError('Columns value must be a list')
 
@@ -101,14 +101,23 @@ def insert(columns: list, table: str):
         raise ValueError('Table value must be a str')
 
     columns_str = ',\n'.join([f'[{col}]' for col in columns])
-    
-    return f'''
+        
+    query = f'''
     INSERT INTO [{table}]
     ({columns_str})
     Values({('?,' * len(columns))[:-1]});
     '''
+    
+    if saveQuery == True:
+        path = f'InsertQuery - {table}.sql'
+        if savePath:
+            path = savePath + f'\InsertQuery - {table}.sql'
+        with open(path, 'w') as sql_file:
+            sql_file.write(query)
+    
+    return query
 
-def update(columns: list, table: str, where: str | list):
+def update(columns: list, table: str, where: str | list, saveQuery:bool = False, savePath:str = None) -> str:
     if not isinstance(columns, list):
         raise ValueError('Columns value must be a list')
 
@@ -131,6 +140,13 @@ def update(columns: list, table: str, where: str | list):
     {','.join(columns)}
     WHERE {where_clause};
     '''
+    
+    if saveQuery == True:
+        path = f'UpdateQuery - {table}.sql'
+        if savePath:
+            path = savePath + f'\UpdateQuery - {table}.sql'
+        with open(path, 'w') as sql_file:
+            sql_file.write(query)
 
     return query
     

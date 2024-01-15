@@ -93,48 +93,44 @@ def CreateTable(df,
 
     return create_table_query
 
-def insert(columns:list, table:str):
+def insert(columns: list, table: str):
     if not isinstance(columns, list):
-        raise ValueError ('Columns value must be a list')
-    
+        raise ValueError('Columns value must be a list')
+
     if not isinstance(table, str):
-        raise ValueError ('Table value must be a str')
+        raise ValueError('Table value must be a str')
+
+    columns_str = ',\n'.join([f'[{col}]' for col in columns])
     
     return f'''
-    INSERT INTO {table}
-    {', '.join(columns)}
-    Values({('?,' * len(columns))[:-1]})
+    INSERT INTO [{table}]
+    ({columns_str})
+    Values({('?,' * len(columns))[:-1]});
     '''
 
-def update(columns:list, table:str, where:str|list):
+def update(columns: list, table: str, where: str | list):
     if not isinstance(columns, list):
-        raise ValueError ('Columns value must be a list')
-    
+        raise ValueError('Columns value must be a list')
+
     if not isinstance(table, str):
-        raise ValueError ('Table value must be a str')
-    
-    if not isinstance(columns, list):
-        raise ValueError ('Where value must be a list')
-    
-    columns = [
-                value for value in columns
-                if value not in where
-               ]
-    
-    if isinstance(where,list):
-        where = ' and, '.join([value + ' = ?' for value in where])
+        raise ValueError('Table value must be a str')
+
+    if not isinstance(where, (list, str)):
+        raise ValueError('Where value must be a list or a string')
+
+    columns = [f'[{value}] = ?\n' for value in columns if value not in where]
+
+    if isinstance(where, list):
+        where_clause = ' AND '.join([f'[{value}] = ?' for value in where])
     else:
-        where += ' = ?'
-    
+        where_clause = f'[{where}] = ?'
+
     query = f'''
-    UPDATE {table}
-        SET {', '.join(
-            [
-            column + ' = ?'
-            for column in columns
-                ])
-                }
-        WHERE {where}
+    UPDATE [{table}]
+    SET 
+    {','.join(columns)}
+    WHERE {where_clause};
     '''
+
     return query
     

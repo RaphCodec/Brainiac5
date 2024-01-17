@@ -1,0 +1,8 @@
+{
+    "DEST_SQL_SERVER": "MY SERVER NAME",
+    "DEST_SQL_DATABASE": "Comics",
+    "DEST_SQL_DRIVER": "MY DRIVER",
+    "DEST_SQL_TABLE": "DC Characters",
+
+    "LOG_FILE_PATH": "./Template.log.txt"
+}

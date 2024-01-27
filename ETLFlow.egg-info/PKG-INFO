@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: ETLFlow
+Version: 0.1.0
+Summary: Python helper library desinged to work with Pandas and PYODBC. Main use is to help with ETL work.
+Author: RaphCodec
+License-File: LICENSE

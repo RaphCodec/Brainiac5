@@ -59,7 +59,7 @@ def CreateTable(df,
             create_table_query += f"    [{column}] {sql_type}({max_length}),\n"
         else:
             create_table_query += f"    [{column}] {sql_type},\n"
-        if column in primary or column == primary: #ensures that primary key columans are not null
+        if (primary != None and column in primary) or column == primary: #ensures that primary key columns are not null
             create_table_query = create_table_query[:-2]
             create_table_query += " NOT NULL,\n"
 

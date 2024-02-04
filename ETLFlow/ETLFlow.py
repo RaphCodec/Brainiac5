@@ -1,6 +1,7 @@
 import pandas as pd
 import pyodbc
 from tqdm import tqdm
+from colorama import Fore, Style
 
 def Connect(Server,Database,Driver):
     conn = pyodbc.connect(
@@ -149,7 +150,7 @@ def update(columns: list, table: str, where: str | list, saveQuery:bool = False,
 
     return query
 
-def RunQuery(df,query:str,cursor,conn, batchSize:int = 20_000, NoChunking:bool = False):
+def RunQuery(df,query:str,cursor,conn, ChunkSize:int = 20_000, NoChunking:bool = False, BarDesc:str = 'Processing rows') -> None:
     df  = df.astype(object).where(pd.notnull(df), None)
     
     cursor.fast_executemany = True
@@ -162,21 +163,36 @@ def RunQuery(df,query:str,cursor,conn, batchSize:int = 20_000, NoChunking:bool =
     # Get the total number of rows for the progress bar
     total_rows = len(df)
     
+    if ChunkSize > len(df):
+        ChunkSize = len(df)
+    
     # Use tqdm to create a progress bar
-    with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
+    with tqdm(total=total_rows, desc=BarDesc, unit="row", colour="blue", ascii=' =') as pbar:
         rows_list = df.values.tolist()
-        #splitting df into batches and executing query
-        for i in range(0, len(rows_list), batchSize):
-            batch = rows_list[i:i + batchSize]
-            
-            # Execute the query for the current batch
-            cursor.executemany(query, batch)
-            conn.commit()
-            
-            # Update the progress bar
-            pbar.update(len(batch))
 
-    # Close the progress bar after completion
+        try:
+            for i in range(0, len(rows_list), ChunkSize):
+                batch = rows_list[i:i + ChunkSize]
+                
+                # Execute the query for the current batch
+                cursor.executemany(query, batch)
+                conn.commit()
+                
+                # Update the progress bar for each iteration
+                pbar.update(ChunkSize)
+                
+                # Update the progress bar description dynamically
+                processed_rows = min(pbar.n, total_rows)
+                pbar.set_postfix_str(f"Processed {processed_rows}/{total_rows} rows")
+            
+            # If successfully completed, set the progress bar to green
+            pbar.set_postfix_str(Fore.GREEN + f"Completed: Processed {total_rows}/{total_rows} rows" + Style.RESET_ALL)
+            
+        except Exception as e:
+            # If an error occurs, set the progress bar to red
+            pbar.set_postfix_str(Fore.RED + f"Error: {e}. Processed {processed_rows} rows." + Style.RESET_ALL)
+        
+    # Close the progress bar after completion or error
     pbar.close()
     return
     

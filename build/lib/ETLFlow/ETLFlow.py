@@ -1,7 +1,6 @@
 import pandas as pd
-import numpy as np
 import pyodbc
-import time
+from tqdm import tqdm
 
 def Connect(Server,Database,Driver):
     conn = pyodbc.connect(
@@ -149,4 +148,35 @@ def update(columns: list, table: str, where: str | list, saveQuery:bool = False,
             sql_file.write(query)
 
     return query
+
+def RunQuery(df,query:str,cursor,conn, batchSize:int = 20_000, NoChunking:bool = False):
+    df  = df.astype(object).where(pd.notnull(df), None)
+    
+    cursor.fast_executemany = True
+    
+    if NoChunking:
+        cursor.executemany(query, df.values.tolist())
+        conn.commit()
+        return
+    
+    # Get the total number of rows for the progress bar
+    total_rows = len(df)
+    
+    # Use tqdm to create a progress bar
+    with tqdm(total=total_rows, desc="Processing rows", unit="row") as pbar:
+        rows_list = df.values.tolist()
+        #splitting df into batches and executing query
+        for i in range(0, len(rows_list), batchSize):
+            batch = rows_list[i:i + batchSize]
+            
+            # Execute the query for the current batch
+            cursor.executemany(query, batch)
+            conn.commit()
+            
+            # Update the progress bar
+            pbar.update(len(batch))
+
+    # Close the progress bar after completion
+    pbar.close()
+    return
     

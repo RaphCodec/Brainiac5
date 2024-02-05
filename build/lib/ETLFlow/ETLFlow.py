@@ -93,7 +93,7 @@ def CreateTable(df,
 
     return create_table_query
 
-def insert(columns: list, table: str, saveQuery:bool = False, savePath:str = None) -> str:
+def MakeInsertQuery(columns: list, table: str, saveQuery:bool = False, savePath:str = None) -> str:
     if not isinstance(columns, list):
         raise ValueError('Columns value must be a list')
 
@@ -117,7 +117,7 @@ def insert(columns: list, table: str, saveQuery:bool = False, savePath:str = Non
     
     return query
 
-def update(columns: list, table: str, where: str | list, saveQuery:bool = False, savePath:str = None) -> str:
+def MakeUpdateQuery(columns: list, table: str, where: str | list, saveQuery:bool = False, savePath:str = None) -> str:
     if not isinstance(columns, list):
         raise ValueError('Columns value must be a list')
 
@@ -150,8 +150,10 @@ def update(columns: list, table: str, where: str | list, saveQuery:bool = False,
 
     return query
 
-def RunQuery(df,query:str,cursor,conn, ChunkSize:int = 20_000, NoChunking:bool = False, BarDesc:str = 'Processing rows') -> None:
+def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False, BarDesc:str = 'Processing rows') -> None:
     df  = df.astype(object).where(pd.notnull(df), None)
+    
+    cursor = conn.cursor()
     
     cursor.fast_executemany = True
     

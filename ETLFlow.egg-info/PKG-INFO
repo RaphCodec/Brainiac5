@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: ETLFlow
+Version: 0.0.1
+Summary: PYODBC and Pandas helper module
+Author: Rapahel Cilfton (Github: RaphCodeC)
+Author-email: 
+Keywords: python,ETL
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: Microsoft :: Windows
+License-File: LICENSE
+
+Library to help with commonn ETL tasks with sql and pandas

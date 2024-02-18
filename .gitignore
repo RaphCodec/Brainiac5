@@ -52,5 +52,6 @@ __pycache__
 *.csv
 *.xlsx
 
-# python whl #
+# python library setup  #
 *.whl
+*.egg-info/

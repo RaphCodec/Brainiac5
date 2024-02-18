@@ -51,3 +51,6 @@ __pycache__
 # data file #
 *.csv
 *.xlsx
+
+# python whl #
+*.whl

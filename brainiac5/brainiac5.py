@@ -157,44 +157,75 @@ def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False,
     
     cursor.fast_executemany = True
     
+    errors = pd.DataFrame()
+    
     if NoChunking:
-        cursor.executemany(query, df.values.tolist())
-        conn.commit()
+        try:
+            cursor.executemany(query, df.values.tolist())
+            conn.commit()
+            print(Fore.GREEN + f'\nQuery Executed Successfully.' + Style.RESET_ALL)
+        except Exception as e:
+            print(Fore.RED + f'\nError: {e}' + Style.RESET_ALL)
         return
     
     # Get the total number of rows for the progress bar
     total_rows = len(df)
+    rows_processed = 0
     
     if ChunkSize > len(df):
         ChunkSize = len(df)
     
+    batch_num = 1
+    
     # Use tqdm to create a progress bar
-    with tqdm(total=total_rows, desc=BarDesc, unit="row", colour="blue", ascii=' =') as pbar:
-        rows_list = df.values.tolist()
-
-        try:
-            for i in range(0, len(rows_list), ChunkSize):
-                batch = rows_list[i:i + ChunkSize]
-                
+    
+    for i in range(0, len(df), ChunkSize):
+        batch = df.iloc[i:i + ChunkSize]  # Get the current batch of rows
+        with tqdm(total=len(batch), desc=BarDesc, unit="row", colour="blue", ascii=' =') as pbar:
+            try:
                 # Execute the query for the current batch
-                cursor.executemany(query, batch)
+                cursor.executemany(query, batch.values.tolist())
                 conn.commit()
                 
                 # Update the progress bar for each iteration
-                pbar.update(ChunkSize)
+                pbar.update(len(batch))
                 
                 # Update the progress bar description dynamically
                 processed_rows = min(pbar.n, total_rows)
-                pbar.set_postfix_str(f"Processed {processed_rows}/{total_rows} rows")
-            
-            # If successfully completed, set the progress bar to green
-            pbar.set_postfix_str(Fore.GREEN + f"Completed: Processed {total_rows}/{total_rows} rows" + Style.RESET_ALL)
-            
-        except Exception as e:
-            # If an error occurs, set the progress bar to red
-            pbar.set_postfix_str(Fore.RED + f"Error: {e}. Processed {processed_rows} rows." + Style.RESET_ALL)
+                
+                rows_processed += processed_rows
+                
+                batch_num += 1
+                
+            except Exception as e:
+                print(Fore.RED + f'\nError in Batch {batch_num}' + Style.RESET_ALL)
+                errors = pd.concat([errors, batch])  # Append error rows to the DataFrame
+                batch_num += 1
+        # Close the progress bar after completion or error
+        pbar.close()
+    
+    print(Fore.GREEN + f'Sucessfully processed {rows_processed}/{total_rows}.' + Style.RESET_ALL)
+       
+    if not errors.empty:
+        cursor.fast_executemany = False
+        print(Fore.YELLOW + 'Attempting to find errors' + Style.RESET_ALL)  
+        errors['Error'] = None
+        for idx, row in errors.iloc[:, :-1].iterrows():
+            try:
+                cursor.execute(query, row.tolist())
+                rows_processed += 1
+                print('here')
+            except Exception as e:
+                errors.at[idx, 'Error'] = e
+                print('error')
+        # conn.commit()
         
-    # Close the progress bar after completion or error
-    pbar.close()
+        errors.to_csv('Errors.csv')
+        
+        print(Fore.GREEN + f'New Total after finding errors: {rows_processed}/{total_rows} rows Successful.' + Style.RESET_ALL
+            ,Fore.RED + f'\n{total_rows - rows_processed} rows with errors.' + Style.RESET_ALL)
+            
+        
+    
     return
     

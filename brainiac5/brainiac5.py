@@ -2,6 +2,7 @@ import pandas as pd
 import pyodbc
 from tqdm import tqdm
 from colorama import Fore, Style
+import warnings
 
 def Connect(Server,Database,Driver):
     conn = pyodbc.connect(
@@ -15,6 +16,52 @@ def Connect(Server,Database,Driver):
     cursor = conn.cursor()
     return cursor, conn 
 
+#this fucntion returns the maximum number of digits both before and after the decimal point across all column values
+def DecimalCount(value):
+    value_str = str(value)
+    if '.' in value_str:
+        before_decimal = len(value_str.split('.')[0])
+        after_decimal = len(value_str.split('.')[1])
+    else:
+        before_decimal = len(value_str)
+        after_decimal = 0
+    return pd.Series({'Max_Before': before_decimal, 'Max_After': after_decimal})
+
+def IntType(column):
+    """
+    Checking for integer data types and their respective ranges:
+    INT: 4-byte integer (-2,147,483,648 to 2,147,483,647)
+    BIGINT: 8-byte integer (-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807)
+    SMALLINT: 2-byte integer (-32,768 to 32,767)
+    TINYINT: 1-byte integer (0 to 255)
+    """
+
+    min_val = column.min()
+    max_val = column.max()
+    
+    if min_val in range(0, 256) and max_val in range(0, 256):
+        return 'TINYINT'
+    elif (min_val in range(0, 256) or max_val in range(0, 256)) and (min_val not in range(0, 256) or max_val not in range(0, 256)):
+        warnings.warn(Fore.YELLOW + f'\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}' + Style.RESET_ALL, stacklevel=2)
+        return 'SMALLINT'
+    elif min_val in range(-32_768, 32_768) and max_val in range(-32_768, 32_768):
+        return 'SMALLINT'
+    elif (min_val in range(-32_768, 32_768) or max_val in range(-32_768, 32_768)) and (min_val not in range(-32_768, 32_768) or max_val not in range(-32_768, 32_768)):
+        warnings.warn(Fore.YELLOW + f'\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}' + Style.RESET_ALL, stacklevel=2)
+        return 'INT'
+    elif min_val in range(-2_147_483_648, 2_147_483_648) and max_val in range(-2_147_483_648, 2_147_483_648):
+        return 'INT'
+    elif (min_val in range(-2_147_483_648, 2_147_483_648) or max_val in range(-2_147_483_648, 2_147_483_648)) and (min_val not in range(-2_147_483_648, 2_147_483_648) or max_val not in range(-2_147_483_648, 2_147_483_648)):
+        warnings.warn(Fore.YELLOW + f'\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}' + Style.RESET_ALL, stacklevel=2)
+        return 'BIGINT'
+    else:
+        return 'BIGINT'
+
+'''
+The CreateTable fucntion is intended to HELP create a more accurate database schema (for SQL SERVER) 
+based on a pandas dataframe.However the schema still may not be 100% as expected and should
+be checked and changed if needed.
+'''
 def CreateTable(df,
                 table: str,
                 primary: str | list = None,
@@ -38,8 +85,6 @@ def CreateTable(df,
 
     # Define a mapping of pandas data types to SQL Server data types
     sql_data_types = {
-        'int64': 'INT',
-        'float64': 'FLOAT',
         'object': 'VARCHAR',
         'datetime64[ns]': 'DATETIME',
         'bool': 'BIT',
@@ -57,6 +102,15 @@ def CreateTable(df,
         if dtype == 'object':
             max_length = df[column].astype(str).apply(len).max() + charbuff
             create_table_query += f"    [{column}] {sql_type}({max_length}),\n"
+        elif 'float' in str(dtype):
+            max_digits = df[column].apply(DecimalCount)
+            # Find the maximum values across all rows
+            max_before = max_digits['Max_Before'].max()
+            max_after = max_digits['Max_After'].max()
+            create_table_query += f"    [{column}] DECIMAL({max_before + max_after},{max_after}),\n"
+        elif 'int' in str(dtype):
+            int_type = IntType(df[column])
+            create_table_query += f"    [{column}] [{int_type}],\n"
         else:
             create_table_query += f"    [{column}] {sql_type},\n"
         if (primary != None and column in primary) or column == primary: #ensures that primary key columns are not null
@@ -150,82 +204,50 @@ def MakeUpdateQuery(columns: list, table: str, where: str | list, saveQuery:bool
 
     return query
 
-def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False, BarDesc:str = 'Processing rows') -> None:
+def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False, BarDesc:str = 'Processing rows', BarColor:str='green') -> None:
     df  = df.astype(object).where(pd.notnull(df), None)
     
     cursor = conn.cursor()
     
     cursor.fast_executemany = True
     
-    errors = pd.DataFrame()
-    
     if NoChunking:
-        try:
-            cursor.executemany(query, df.values.tolist())
-            conn.commit()
-            print(Fore.GREEN + f'\nQuery Executed Successfully.' + Style.RESET_ALL)
-        except Exception as e:
-            print(Fore.RED + f'\nError: {e}' + Style.RESET_ALL)
+        cursor.executemany(query, df.values.tolist())
+        conn.commit()
         return
     
     # Get the total number of rows for the progress bar
     total_rows = len(df)
-    rows_processed = 0
     
     if ChunkSize > len(df):
         ChunkSize = len(df)
     
-    batch_num = 1
-    
     # Use tqdm to create a progress bar
-    
-    for i in range(0, len(df), ChunkSize):
-        batch = df.iloc[i:i + ChunkSize]  # Get the current batch of rows
-        with tqdm(total=len(batch), desc=BarDesc, unit="row", colour="blue", ascii=' =') as pbar:
-            try:
+    with tqdm(total=total_rows, desc=BarDesc, unit="row", colour=BarColor) as pbar:
+        rows_list = df.values.tolist()
+
+        try:
+            for i in range(0, len(rows_list), ChunkSize):
+                batch = rows_list[i:i + ChunkSize]
+                
                 # Execute the query for the current batch
-                cursor.executemany(query, batch.values.tolist())
+                cursor.executemany(query, batch)
                 conn.commit()
                 
                 # Update the progress bar for each iteration
-                pbar.update(len(batch))
+                pbar.update(ChunkSize)
                 
                 # Update the progress bar description dynamically
                 processed_rows = min(pbar.n, total_rows)
-                
-                rows_processed += processed_rows
-                
-                batch_num += 1
-                
-            except Exception as e:
-                print(Fore.RED + f'\nError in Batch {batch_num}' + Style.RESET_ALL)
-                errors = pd.concat([errors, batch])  # Append error rows to the DataFrame
-                batch_num += 1
-        # Close the progress bar after completion or error
-        pbar.close()
-    
-    print(Fore.GREEN + f'Sucessfully processed {rows_processed}/{total_rows}.' + Style.RESET_ALL)
-       
-    if not errors.empty:
-        cursor.fast_executemany = False
-        print(Fore.YELLOW + 'Attempting to find errors' + Style.RESET_ALL)  
-        errors['Error'] = None
-        for idx, row in errors.iloc[:, :-1].iterrows():
-            try:
-                cursor.execute(query, row.tolist())
-                rows_processed += 1
-                print('here')
-            except Exception as e:
-                errors.at[idx, 'Error'] = e
-                print('error')
-        # conn.commit()
-        
-        errors.to_csv('Errors.csv')
-        
-        print(Fore.GREEN + f'New Total after finding errors: {rows_processed}/{total_rows} rows Successful.' + Style.RESET_ALL
-            ,Fore.RED + f'\n{total_rows - rows_processed} rows with errors.' + Style.RESET_ALL)
+                pbar.set_postfix_str(f"Processed {processed_rows}/{total_rows} rows")
             
+            # If successfully completed, set the progress bar to green
+            pbar.set_postfix_str(Fore.GREEN + f"Completed: Processed {total_rows}/{total_rows} rows" + Style.RESET_ALL)
+            
+        except Exception as e:
+            # If an error occurs, set the progress bar to red
+            pbar.set_postfix_str(Fore.RED + f"Error: {e}. Processed {processed_rows} rows." + Style.RESET_ALL)
         
-    
+    # Close the progress bar after completion or error
+    pbar.close()
     return
-    

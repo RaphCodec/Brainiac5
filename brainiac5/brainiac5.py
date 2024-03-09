@@ -159,27 +159,25 @@ def MakeInsertQuery(columns: list, table: str, saveQuery:bool = False, savePath:
     
     return query
 
-def MakeUpdateQuery(columns: list, table: str, where: str | list, saveQuery:bool = False, savePath:str = None) -> str:
+def MakeUpdateQuery(columns: list, table: str, where:list, saveQuery:bool = False, savePath:str = None) -> str:
     if not isinstance(columns, list):
-        raise ValueError('Columns value must be a list')
+        raise TypeError('Columns value must be a list')
 
     if not isinstance(table, str):
-        raise ValueError('Table value must be a str')
+        raise TypeError('Table value must be a str')
 
-    if not isinstance(where, (list, str)):
-        raise ValueError('Where value must be a list or a string')
+    if not isinstance(where, list):
+        raise TypeError('Where value must be a list')
 
+    #removing columns that should only be in where clause and add = ? for each column
     columns = [f'[{value}] = ?\n' for value in columns if value not in where]
 
-    if isinstance(where, list):
-        where_clause = ' AND '.join([f'[{value}] = ?' for value in where])
-    else:
-        where_clause = f'[{where}] = ?'
+    where_clause = ' AND '.join([f'[{value}] = ?' for value in where]) #making where clause
 
     query = f'''
     UPDATE [{table}]
     SET 
-    {','.join(columns)}
+        {','.join(columns)}
     WHERE {where_clause};
     '''
     

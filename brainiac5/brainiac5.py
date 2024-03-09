@@ -4,18 +4,6 @@ from tqdm import tqdm
 from colorama import Fore, Style
 import warnings
 
-def Connect(Server,Database,Driver):
-    conn = pyodbc.connect(
-        f'''
-        Driver={Driver};
-        Server={Server};
-        Database={Database};
-        Trusted_Connection=yes;
-        '''
-        )
-    cursor = conn.cursor()
-    return cursor, conn 
-
 #this fucntion returns the maximum number of digits both before and after the decimal point across all column values
 def DecimalCount(value):
     value_str = str(value)
@@ -58,7 +46,7 @@ def IntType(column):
         return 'BIGINT'
 
 '''
-The CreateTable fucntion is intended to HELP create a more accurate database schema (for SQL SERVER) 
+The CreateTable function is intended to HELP create a more accurate database schema (for SQL SERVER) 
 based on a pandas dataframe.However the schema still may not be 100% as expected and should
 be checked and changed if needed.
 '''

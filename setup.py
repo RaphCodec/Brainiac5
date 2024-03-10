@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.0.2' 
+VERSION = '0.0.21' 
 DESCRIPTION = 'PYODBC and Pandas helper module'
 LONG_DESCRIPTION = 'Library to help with commonn ETL tasks with sql and pandas'
 
@@ -20,7 +20,6 @@ setup(
         keywords=['Extract', 'Trasform', 'Load', 'SQL', 'Data Transformation', 'Data', 'ETL'],
         classifiers= [
             "Intended Audience :: Developers",
-            "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3.10",

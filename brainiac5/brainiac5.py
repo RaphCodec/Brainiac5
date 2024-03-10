@@ -52,13 +52,13 @@ be checked and changed if needed.
 '''
 def CreateTable(df,
                 table: str,
-                primary: str | list = None,
+                primary: list = None,
                 primaryName: str = None,
-                foreign: str | list = None,
+                foreign: list = None,
                 foreignName: str = None,
                 foreignTable: str = None,
-                foreignRelated: str | list = None,
-                unique: str | list = None,
+                foreignRelated: list = None,
+                unique: list = None,
                 uniqueName: str = None,
                 charbuff: int = 10,
                 saveQuery:bool = False,
@@ -66,10 +66,10 @@ def CreateTable(df,
                 ) -> str:
 
     if not isinstance(table, str):
-        raise ValueError('Table argument must be str')
+        raise TypeError('Table argument must be str')
 
     if foreign and not foreignTable:
-        raise TypeError('Foreign Table must be supplied if a foreign key is to be added')
+        raise TypeError('foreignTable must not be None if a foreign key is to be added')
 
     # Define a mapping of pandas data types to SQL Server data types
     sql_data_types = {
@@ -110,20 +110,20 @@ def CreateTable(df,
     # Adding primary key(s) if needed
     if primary is not None:
         primary_key_constraint = f'CONSTRAINT [{primaryName}] PRIMARY KEY ' if primaryName else 'PRIMARY KEY '
-        primary_keys = primary if isinstance(primary, str) else ", ".join([f'[{key}]' for key in primary])
+        primary_keys = ", ".join([f'[{key}]' for key in primary])
         create_table_query += f'\nALTER TABLE [{table}]\nADD {primary_key_constraint}({primary_keys});\n'
 
     # Adding foreign key(s) if needed
-    if foreign is not None and foreignName is not None and foreignTable is not None and foreignRelated is not None:
+    if foreign is not None and foreignTable is not None and foreignRelated is not None:
         foreign_key_constraint = f'CONSTRAINT [{foreignName}] FOREIGN KEY ' if foreignName else 'FOREIGN KEY '
-        foreign_keys = foreign if isinstance(foreign, str) else ", ".join([f'[{key}]' for key in foreign])
-        foreign_related_keys = foreignRelated if isinstance(foreignRelated, str) else ", ".join([f'[{key}]' for key in foreignRelated])
+        foreign_keys = ", ".join([f'[{key}]' for key in foreign])
+        foreign_related_keys = ", ".join([f'[{key}]' for key in foreignRelated])
         create_table_query += f'\nALTER TABLE [{table}]\nADD {foreign_key_constraint}({foreign_keys})\nREFERENCES [{foreignTable}] ({foreign_related_keys});\n'
 
     # Adding unique key(s) if needed
     if unique is not None:
         unique_constraint = f'CONSTRAINT [{uniqueName}] UNIQUE ' if uniqueName else 'UNIQUE '
-        unique_keys = unique if isinstance(unique, str) else ", ".join([f'[{key}]' for key in unique])
+        unique_keys = ", ".join([f'[{key}]' for key in unique])
         create_table_query += f'\nALTER TABLE [{table}]\nADD {unique_constraint}({unique_keys});\n'
         
     if saveQuery == True:

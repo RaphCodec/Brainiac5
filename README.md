@@ -23,7 +23,7 @@ import pandas as pd
 
 ## Example usage. See Example and Template Folders for more
 df = pd.read_csv(SOURCE)
-b5.CreateTable(df,DEST_TABLE,primary=['URL'],primaryName=f'PK__{DEST_TABLE}__ID',saveQuery=True)
+b5.CreateTable(df,DEST_TABLE,primary=['PK_Column'],primaryName=f'PK__{DEST_TABLE}__ID',saveQuery=True)
 ```
 
 ## Planned Features
@@ -38,8 +38,4 @@ b5.CreateTable(df,DEST_TABLE,primary=['URL'],primaryName=f'PK__{DEST_TABLE}__ID'
 ## Contribution
 
 Contributions to Brainiac5 are welcome! Feel free to submit pull requests or open issues to suggest enhancements or report bugs.
-
-## License
-
-This project is licensed under the GPL-3 License - see the [LICENSE](LICENSE) file for details.
 ```

@@ -45,96 +45,6 @@ def IntType(column):
     else:
         return 'BIGINT'
 
-'''
-The CreateTable function is intended to HELP create a more accurate database schema (for SQL SERVER) 
-based on a pandas dataframe.However the schema still may not be 100% as expected and should
-be checked and changed if needed.
-'''
-def CreateTable(df,
-                table: str,
-                primary: list = None,
-                primaryName: str = None,
-                foreign: list = None,
-                foreignName: str = None,
-                foreignTable: str = None,
-                foreignRelated: list = None,
-                unique: list = None,
-                uniqueName: str = None,
-                charbuff: int = 10,
-                saveQuery:bool = False,
-                savePath:str = None
-                ) -> str:
-
-    if not isinstance(table, str):
-        raise TypeError('Table argument must be str')
-
-    if foreign and not foreignTable:
-        raise TypeError('foreignTable must not be None if a foreign key is to be added')
-
-    # Define a mapping of pandas data types to SQL Server data types
-    sql_data_types = {
-        'object': 'VARCHAR',
-        'datetime64[ns]': 'DATETIME',
-        'bool': 'BIT',
-    }
-
-    # Get the columns and their data types from the DataFrame
-    columns = df.columns
-    dtypes = df.dtypes
-
-    # Create the CREATE TABLE statement
-    create_table_query = f"CREATE TABLE [{table}] (\n"
-
-    for column, dtype in zip(columns, dtypes):
-        sql_type = sql_data_types.get(str(dtype), 'VARCHAR(max)')  # defaulting to VARCHAR(max) if no datatype is matched
-        if dtype == 'object':
-            max_length = df[column].astype(str).apply(len).max() + charbuff
-            create_table_query += f"    [{column}] {sql_type}({max_length}),\n"
-        elif 'float' in str(dtype):
-            max_digits = df[column].apply(DecimalCount)
-            # Find the maximum values across all rows
-            max_before = max_digits['Max_Before'].max()
-            max_after = max_digits['Max_After'].max()
-            create_table_query += f"    [{column}] DECIMAL({max_before + max_after},{max_after}),\n"
-        elif 'int' in str(dtype):
-            int_type = IntType(df[column])
-            create_table_query += f"    [{column}] [{int_type}],\n"
-        else:
-            create_table_query += f"    [{column}] {sql_type},\n"
-        if (primary != None and column in primary) or column == primary: #ensures that primary key columns are not null
-            create_table_query = create_table_query[:-2]
-            create_table_query += " NOT NULL,\n"
-
-    create_table_query = create_table_query.rstrip(',\n') + "\n);"
-
-    # Adding primary key(s) if needed
-    if primary is not None:
-        primary_key_constraint = f'CONSTRAINT [{primaryName}] PRIMARY KEY ' if primaryName else 'PRIMARY KEY '
-        primary_keys = ", ".join([f'[{key}]' for key in primary])
-        create_table_query += f'\nALTER TABLE [{table}]\nADD {primary_key_constraint}({primary_keys});\n'
-
-    # Adding foreign key(s) if needed
-    if foreign is not None and foreignTable is not None and foreignRelated is not None:
-        foreign_key_constraint = f'CONSTRAINT [{foreignName}] FOREIGN KEY ' if foreignName else 'FOREIGN KEY '
-        foreign_keys = ", ".join([f'[{key}]' for key in foreign])
-        foreign_related_keys = ", ".join([f'[{key}]' for key in foreignRelated])
-        create_table_query += f'\nALTER TABLE [{table}]\nADD {foreign_key_constraint}({foreign_keys})\nREFERENCES [{foreignTable}] ({foreign_related_keys});\n'
-
-    # Adding unique key(s) if needed
-    if unique is not None:
-        unique_constraint = f'CONSTRAINT [{uniqueName}] UNIQUE ' if uniqueName else 'UNIQUE '
-        unique_keys = ", ".join([f'[{key}]' for key in unique])
-        create_table_query += f'\nALTER TABLE [{table}]\nADD {unique_constraint}({unique_keys});\n'
-        
-    if saveQuery == True:
-        path = f'CreateTable - {table}.sql'
-        if savePath:
-            path = savePath + f'\CreateTable - {table}.sql'
-        with open(path, 'w') as sql_file:
-            sql_file.write(create_table_query)
-
-    return create_table_query
-
 def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False, BarDesc:str = 'Processing rows', BarColor:str='green') -> None:
     df  = df.astype(object).where(pd.notnull(df), None)
     
@@ -187,8 +97,8 @@ class Query:
     
     def __init__(self, table: str, save: bool = False, path: str = None):
         self.table = table
-        self.save = save
-        self.path = path
+        self.save  = save
+        self.path  = path
         
     def ValidateInput(self, columns):
         if not isinstance(columns, list):
@@ -203,6 +113,8 @@ class Query:
                 path = f'InsertQuery - {self.table}.sql'
             elif query_type == 'update':
                 path = f'UpdateQuery - {self.table}.sql'
+            elif query_type == 'CreateTable':
+                path = f'CreateTable - {self.table}.sql'
             else:
                 raise ValueError('Invalid query type. Cannot Save')
 
@@ -211,7 +123,89 @@ class Query:
             with open(path, 'w') as sql_file:
                 sql_file.write(query)      
         
-    def MakeInsertQuery(self, columns:list):
+    '''
+    The CreateTable function is intended to HELP create a more accurate database schema (for SQL SERVER) 
+    based on a pandas dataframe.However the schema still may not be 100% as expected and should
+    be checked and changed if needed.
+    '''
+   
+    def CreateTable(self,
+                df,
+                primary: list = None,
+                primaryName: str = None,
+                foreign: list = None,
+                foreignName: str = None,
+                foreignTable: str = None,
+                foreignRelated: list = None,
+                unique: list = None,
+                uniqueName: str = None,
+                charbuff: int = 10
+                ) -> str:  
+        
+
+        if foreign and not foreignTable:
+            raise ValueError('foreignTable must not be None if a foreign key is to be added')
+
+        # Define a mapping of pandas data types to SQL Server data types
+        sql_data_types = {
+            'object': 'VARCHAR',
+            'datetime64[ns]': 'DATETIME',
+            'bool': 'BIT',
+        }
+
+        # Get the columns and their data types from the DataFrame
+        columns = df.columns
+        dtypes = df.dtypes
+
+        # Create the CREATE TABLE statement
+        create_table_query = f"CREATE TABLE [{self.table}] (\n"
+
+        for column, dtype in zip(columns, dtypes):
+            sql_type = sql_data_types.get(str(dtype), 'VARCHAR(max)')  # defaulting to VARCHAR(max) if no datatype is matched
+            if dtype == 'object':
+                max_length = df[column].astype(str).apply(len).max() + charbuff
+                create_table_query += f"    [{column}] {sql_type}({max_length}),\n"
+            elif 'float' in str(dtype):
+                max_digits = df[column].apply(DecimalCount)
+                # Find the maximum values across all rows
+                max_before = max_digits['Max_Before'].max()
+                max_after = max_digits['Max_After'].max()
+                create_table_query += f"    [{column}] DECIMAL({max_before + max_after},{max_after}),\n"
+            elif 'int' in str(dtype):
+                int_type = IntType(df[column])
+                create_table_query += f"    [{column}] [{int_type}],\n"
+            else:
+                create_table_query += f"    [{column}] {sql_type},\n"
+            if (primary != None and column in primary) or column == primary: #ensures that primary key columns are not null
+                create_table_query = create_table_query[:-2]
+                create_table_query += " NOT NULL,\n"
+
+        create_table_query = create_table_query.rstrip(',\n') + "\n);"
+
+        # Adding primary key(s) if needed
+        if primary is not None:
+            primary_key_constraint = f'CONSTRAINT [{primaryName}] PRIMARY KEY ' if primaryName else 'PRIMARY KEY '
+            primary_keys = ", ".join([f'[{key}]' for key in primary])
+            create_table_query += f'\nALTER TABLE [{self.table}]\nADD {primary_key_constraint}({primary_keys});\n'
+
+        # Adding foreign key(s) if needed
+        if foreign is not None and foreignTable is not None and foreignRelated is not None:
+            foreign_key_constraint = f'CONSTRAINT [{foreignName}] FOREIGN KEY ' if foreignName else 'FOREIGN KEY '
+            foreign_keys = ", ".join([f'[{key}]' for key in foreign])
+            foreign_related_keys = ", ".join([f'[{key}]' for key in foreignRelated])
+            create_table_query += f'\nALTER TABLE [{self.table}]\nADD {foreign_key_constraint}({foreign_keys})\nREFERENCES [{foreignTable}] ({foreign_related_keys});\n'
+
+        # Adding unique key(s) if needed
+        if unique is not None:
+            unique_constraint = f'CONSTRAINT [{uniqueName}] UNIQUE ' if uniqueName else 'UNIQUE '
+            unique_keys = ", ".join([f'[{key}]' for key in unique])
+            create_table_query += f'\nALTER TABLE [{self.table}]\nADD {unique_constraint}({unique_keys});\n'
+        
+        self.SaveQuery(create_table_query, 'CreateTable')
+
+        return create_table_query  
+            
+    def MakeInsertQuery(self, columns:list) -> str:
         self.ValidateInput(columns)
         columns_str = '\n\t,'.join([f'[{col}]' for col in columns])
         
@@ -226,7 +220,7 @@ class Query:
         self.SaveQuery(query, 'insert')
         return query
     
-    def MakeUpdateQuery(self, columns:list, where:list):
+    def MakeUpdateQuery(self, columns:list, where:list) -> str:
         self.ValidateInput(columns)
         if not isinstance(where, list):
             raise TypeError('Where value must be a list')

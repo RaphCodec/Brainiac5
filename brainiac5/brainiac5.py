@@ -135,61 +135,6 @@ def CreateTable(df,
 
     return create_table_query
 
-def MakeInsertQuery(columns: list, table: str, saveQuery:bool = False, savePath:str = None) -> str:
-    if not isinstance(columns, list):
-        raise ValueError('Columns value must be a list')
-
-    if not isinstance(table, str):
-        raise ValueError('Table value must be a str')
-
-    columns_str = ',\n'.join([f'[{col}]' for col in columns])
-        
-    query = f'''
-    INSERT INTO [{table}]
-    ({columns_str})
-    Values({('?,' * len(columns))[:-1]});
-    '''
-    
-    if saveQuery == True:
-        path = f'InsertQuery - {table}.sql'
-        if savePath:
-            path = savePath + f'\InsertQuery - {table}.sql'
-        with open(path, 'w') as sql_file:
-            sql_file.write(query)
-    
-    return query
-
-def MakeUpdateQuery(columns: list, table: str, where:list, saveQuery:bool = False, savePath:str = None) -> str:
-    if not isinstance(columns, list):
-        raise TypeError('Columns value must be a list')
-
-    if not isinstance(table, str):
-        raise TypeError('Table value must be a str')
-
-    if not isinstance(where, list):
-        raise TypeError('Where value must be a list')
-
-    #removing columns that should only be in where clause and add = ? for each column
-    columns = [f'[{value}] = ?\n' for value in columns if value not in where]
-
-    where_clause = ' AND '.join([f'[{value}] = ?' for value in where]) #making where clause
-
-    query = f'''
-    UPDATE [{table}]
-    SET 
-        {','.join(columns)}
-    WHERE {where_clause};
-    '''
-    
-    if saveQuery == True:
-        path = f'UpdateQuery - {table}.sql'
-        if savePath:
-            path = savePath + path
-        with open(path, 'w') as sql_file:
-            sql_file.write(query)
-
-    return query
-
 def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False, BarDesc:str = 'Processing rows', BarColor:str='green') -> None:
     df  = df.astype(object).where(pd.notnull(df), None)
     
@@ -236,3 +181,68 @@ def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False,
     # Close the progress bar after completion or error
     pbar.close()
     return
+
+class Query:
+    __slots__ = ('table','save','path')
+    
+    def __init__(self, table: str, save: bool = False, path: str = None):
+        self.table = table
+        self.save = save
+        self.path = path
+        
+    def ValidateInput(self, columns):
+        if not isinstance(columns, list):
+            raise TypeError('Columns value must be a list')
+
+        if not isinstance(self.table, str):
+            raise TypeError('Table value must be a str')
+        
+    def SaveQuery(self, query, query_type):
+        if self.save:
+            if query_type == 'insert':
+                path = f'InsertQuery - {self.table}.sql'
+            elif query_type == 'update':
+                path = f'UpdateQuery - {self.table}.sql'
+            else:
+                raise ValueError('Invalid query type. Cannot Save')
+
+            if self.path:
+                path = self.path + path
+            with open(path, 'w') as sql_file:
+                sql_file.write(query)      
+        
+    def MakeInsertQuery(self, columns:list):
+        self.ValidateInput(columns)
+        columns_str = '\n\t,'.join([f'[{col}]' for col in columns])
+        
+        query = f'''
+    INSERT INTO [{self.table}]
+    (
+    {columns_str}
+        )
+    VALUES 
+        ({('?,' * len(columns))[:-1]});
+        '''
+        self.SaveQuery(query, 'insert')
+        return query
+    
+    def MakeUpdateQuery(self, columns:list, where:list):
+        self.ValidateInput(columns)
+        if not isinstance(where, list):
+            raise TypeError('Where value must be a list')
+
+        # Removing columns that should only be in the where clause and add = ? for each column
+        columns = '\n\t,'.join([f'[{value}] = ?' for value in columns if value not in where])
+
+        where_clause = '\n\tAND\n\t'.join([f'[{value}] = ?' for value in where]) # Making where clause
+
+        query = f'''
+        UPDATE [{self.table}]
+        SET 
+        {columns}
+        WHERE 
+        {where_clause};
+        '''
+        self.SaveQuery(query, 'update')
+        return query
+    

@@ -91,22 +91,18 @@ def RunQuery(df,query:str,conn, ChunkSize:int = 20_000, NoChunking:bool = False,
     # Close the progress bar after completion or error
     pbar.close()
     return
-
+  
 class Query:
-    __slots__ = ('table','save','path')
+    __slots__ = ('df','table','save','path')
     
-    def __init__(self, table: str, save: bool = False, path: str = None):
-        self.table = table
-        self.save  = save
-        self.path  = path
-        
-    def ValidateInput(self, columns):
-        if not isinstance(columns, list):
-            raise TypeError('Columns value must be a list')
-
+    def __init__(self, df, table:str, save:bool = False, path:str = None):
+        self.df     = df
+        self.table  = table
+        self.save   = save
+        self.path   = path
         if not isinstance(self.table, str):
             raise TypeError('Table value must be a str')
-        
+                
     def SaveQuery(self, query, query_type):
         if self.save:
             if query_type == 'insert':
@@ -121,16 +117,18 @@ class Query:
             if self.path:
                 path = self.path + path
             with open(path, 'w') as sql_file:
-                sql_file.write(query)      
-        
+                sql_file.write(query)    
+                
     '''
-    The CreateTable function is intended to HELP create a more accurate database schema (for SQL SERVER) 
+    The CreateTable method is intended to HELP create a more accurate database schema (for SQL SERVER) 
     based on a pandas dataframe.However the schema still may not be 100% as expected and should
-    be checked and changed if needed.
+    be checked and changed if needed. 
+    
+    THIS CreateTable METHOD IS MEANT TO BE USED WHEN DEVELOPING THE SQL TABLE. 
+    IT IS NOT INTENDED FOR A PRODUCTION ENVIRONMENT.
     '''
    
     def CreateTable(self,
-                df,
                 primary: list = None,
                 primaryName: str = None,
                 foreign: list = None,
@@ -142,7 +140,6 @@ class Query:
                 charbuff: int = 10
                 ) -> str:  
         
-
         if foreign and not foreignTable:
             raise ValueError('foreignTable must not be None if a foreign key is to be added')
 
@@ -154,8 +151,8 @@ class Query:
         }
 
         # Get the columns and their data types from the DataFrame
-        columns = df.columns
-        dtypes = df.dtypes
+        columns = self.df.columns
+        dtypes = self.df.dtypes
 
         # Create the CREATE TABLE statement
         create_table_query = f"CREATE TABLE [{self.table}] (\n"
@@ -163,16 +160,16 @@ class Query:
         for column, dtype in zip(columns, dtypes):
             sql_type = sql_data_types.get(str(dtype), 'VARCHAR(max)')  # defaulting to VARCHAR(max) if no datatype is matched
             if dtype == 'object':
-                max_length = df[column].astype(str).apply(len).max() + charbuff
+                max_length = self.df[column].astype(str).apply(len).max() + charbuff
                 create_table_query += f"    [{column}] {sql_type}({max_length}),\n"
             elif 'float' in str(dtype):
-                max_digits = df[column].apply(DecimalCount)
+                max_digits = self.df[column].apply(DecimalCount)
                 # Find the maximum values across all rows
                 max_before = max_digits['Max_Before'].max()
                 max_after = max_digits['Max_After'].max()
                 create_table_query += f"    [{column}] DECIMAL({max_before + max_after},{max_after}),\n"
             elif 'int' in str(dtype):
-                int_type = IntType(df[column])
+                int_type = IntType(self.df[column])
                 create_table_query += f"    [{column}] [{int_type}],\n"
             else:
                 create_table_query += f"    [{column}] {sql_type},\n"
@@ -204,10 +201,9 @@ class Query:
         self.SaveQuery(create_table_query, 'CreateTable')
 
         return create_table_query  
-            
-    def MakeInsertQuery(self, columns:list) -> str:
-        self.ValidateInput(columns)
-        columns_str = '\n\t,'.join([f'[{col}]' for col in columns])
+                
+    def Insert(self) -> str:
+        columns_str = '\n\t,'.join([f'[{col}]' for col in self.df.columns.tolist()])
         
         query = f'''
     INSERT INTO [{self.table}]
@@ -215,18 +211,17 @@ class Query:
     {columns_str}
         )
     VALUES 
-        ({('?,' * len(columns))[:-1]});
+        ({('?,' * len(self.df.columns.tolist()))[:-1]});
         '''
         self.SaveQuery(query, 'insert')
         return query
     
-    def MakeUpdateQuery(self, columns:list, where:list) -> str:
-        self.ValidateInput(columns)
+    def Update(self, where:list) -> str:
         if not isinstance(where, list):
             raise TypeError('Where value must be a list')
 
         # Removing columns that should only be in the where clause and add = ? for each column
-        columns = '\n\t,'.join([f'[{value}] = ?' for value in columns if value not in where])
+        columns = '\n\t,'.join([f'[{value}] = ?' for value in self.df.columns.tolist() if value not in where])
 
         where_clause = '\n\tAND\n\t'.join([f'[{value}] = ?' for value in where]) # Making where clause
 
@@ -239,4 +234,3 @@ class Query:
         '''
         self.SaveQuery(query, 'update')
         return query
-    

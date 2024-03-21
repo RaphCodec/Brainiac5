@@ -35,7 +35,7 @@ b5.CreateTable(df,DEST_TABLE,primary=['PK_Column'],primaryName=f'PK__{DEST_TABLE
 ## Planned Features
 
 1. **Error Handling for Queries:** Enhance error handling mechanisms to provide informative feedback on query failures. 
-2. **Query Functions Converted to Class Object:** Refactor query functions into a class object for improved organization and reusability. (in progress)
+2. **Query Functions Converted to Class Object:** Refactor query functions into a class object for improved organization and reusability. (on master)
 3. **Additional Data Transformation Class Object:**
    - Implement a class object for data transformation, allowing for functionalities like normalizing pandas dataframes similar to SQL tables.
 4. **Generate ETL Templates:** Introduce templates for Extract, Transform, Load (ETL) processes to streamline data pipeline development.

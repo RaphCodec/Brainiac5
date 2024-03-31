@@ -131,6 +131,7 @@ class Query:
     def CreateTable(self,
                 primary: list = None,
                 primaryName: str = None,
+                ClusterPK:bool = True,
                 foreign: list = None,
                 foreignName: str = None,
                 foreignTable: str = None,
@@ -182,6 +183,7 @@ class Query:
         # Adding primary key(s) if needed
         if primary is not None:
             primary_key_constraint = f'CONSTRAINT [{primaryName}] PRIMARY KEY ' if primaryName else 'PRIMARY KEY '
+            primary_key_constraint += 'CLUSTERED ' if ClusterPK else ''
             primary_keys = ", ".join([f'[{key}]' for key in primary])
             create_table_query += f'\nALTER TABLE [{self.table}]\nADD {primary_key_constraint}({primary_keys});\n'
 

@@ -9,7 +9,7 @@ Brainiac5 is a Python package designed to automate basic SQL tasks, allowing for
 
 ## Usage
 
-To use Brainiac5, simply install the package using pip:
+To use Brainiac5, simply install the package using pip (python 3.8+ officially supported):
 
 ```bash
 pip install brainiac5
@@ -29,7 +29,16 @@ import pandas as pd
 
 ## Example usage. See Example and Template Folders for more
 df = pd.read_csv(SOURCE)
-b5.CreateTable(df,DEST_TABLE,primary=['PK_Column'],primaryName=f'PK__{DEST_TABLE}__ID',saveQuery=True)
+
+#creating a query object to create all queries related to df and DEST_TABLE
+query = b5.Query(df, DEST_TABLE)
+
+#Making Create Table Query. Comment out for Production
+ct = query.CreateTable(primary=['PK'], primaryName=f'PK__{DEST_TABLE}__ID')
+
+#Make parameterized insert and update queries.
+insert = query.Insert()
+update = query.Update(where=['PK'])
 ```
 
 ## Planned Features
@@ -41,6 +50,7 @@ b5.CreateTable(df,DEST_TABLE,primary=['PK_Column'],primaryName=f'PK__{DEST_TABLE
 4. **Generate ETL Templates:** Introduce templates for Extract, Transform, Load (ETL) processes to streamline data pipeline development.
 5. **Module to Replicate Access Databases:** Develop a module to replicate Access databases for migration or backup purposes.
 6. **Error notification** Send emails to script admins. (in progress)
+7. **Adding more Data Types** Adding more data types for CreateTable in Query class to imporve accuracy.
 
 ## Contribution
 

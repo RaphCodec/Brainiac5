@@ -137,7 +137,7 @@ class Query:
                 foreignRelated: list = None,
                 unique: list = None,
                 uniqueName: str = None,
-                charbuff: int = 10
+                charbuff: int = 0
                 ) -> str:  
         
         if foreign and not foreignTable:

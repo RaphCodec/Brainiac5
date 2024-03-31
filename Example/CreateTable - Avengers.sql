@@ -1,25 +1,25 @@
 CREATE TABLE [Avengers] (
-    [URL] VARCHAR(77) NOT NULL,
-    [Name/Alias] VARCHAR(45),
+    [URL] VARCHAR(67) NOT NULL,
+    [Name/Alias] VARCHAR(35),
     [Appearances] [SMALLINT],
     [Current?] BIT,
-    [Gender] VARCHAR(16),
-    [Probationary Introl] VARCHAR(16),
-    [Full/Reserve Avengers Intro] VARCHAR(16),
+    [Gender] VARCHAR(6),
+    [Probationary Introl] VARCHAR(6),
+    [Full/Reserve Avengers Intro] VARCHAR(6),
     [Year] [SMALLINT],
     [Years since joining] [TINYINT],
-    [Honorary] VARCHAR(22),
-    [Death1] VARCHAR(13),
-    [Return1] VARCHAR(13),
-    [Death2] VARCHAR(13),
-    [Return2] VARCHAR(13),
-    [Death3] VARCHAR(13),
-    [Return3] VARCHAR(13),
-    [Death4] VARCHAR(13),
-    [Return4] VARCHAR(13),
-    [Death5] VARCHAR(13),
-    [Return5] VARCHAR(13),
-    [Notes] VARCHAR(265)
+    [Honorary] VARCHAR(12),
+    [Death1] VARCHAR(3),
+    [Return1] VARCHAR(3),
+    [Death2] VARCHAR(3),
+    [Return2] VARCHAR(3),
+    [Death3] VARCHAR(3),
+    [Return3] VARCHAR(3),
+    [Death4] VARCHAR(3),
+    [Return4] VARCHAR(3),
+    [Death5] VARCHAR(3),
+    [Return5] VARCHAR(3),
+    [Notes] VARCHAR(255)
 );
 ALTER TABLE [Avengers]
-ADD CONSTRAINT [PK__Avengers__ID] PRIMARY KEY ([URL]);
+ADD CONSTRAINT [PK__Avengers__ID] PRIMARY KEY CLUSTERED ([URL]);

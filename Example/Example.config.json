@@ -1,8 +1,0 @@
-{
-    "SOURCE":"https://raw.githubusercontent.com/fivethirtyeight/data/master/avengers/avengers.csv",
-
-    "DEST_SERVER":"MY Server",
-    "DEST_DATABASE":"My DB",
-    "DEST_TABLE":"Avengers"
-    
-}

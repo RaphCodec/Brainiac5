@@ -131,13 +131,14 @@ class Query:
     def CreateTable(self,
                 primary: list = None,
                 primaryName: str = None,
+                ClusterPK:bool = True,
                 foreign: list = None,
                 foreignName: str = None,
                 foreignTable: str = None,
                 foreignRelated: list = None,
                 unique: list = None,
                 uniqueName: str = None,
-                charbuff: int = 10
+                charbuff: int = 0
                 ) -> str:  
         
         if foreign and not foreignTable:
@@ -182,6 +183,7 @@ class Query:
         # Adding primary key(s) if needed
         if primary is not None:
             primary_key_constraint = f'CONSTRAINT [{primaryName}] PRIMARY KEY ' if primaryName else 'PRIMARY KEY '
+            primary_key_constraint += 'CLUSTERED ' if ClusterPK else ''
             primary_keys = ", ".join([f'[{key}]' for key in primary])
             create_table_query += f'\nALTER TABLE [{self.table}]\nADD {primary_key_constraint}({primary_keys});\n'
 
@@ -234,3 +236,56 @@ class Query:
         '''
         self.SaveQuery(query, 'update')
         return query
+    
+'''
+This function is mainly intended to sned script warning and failure emails but can be used for any type of email.
+Only outlook application on Windows has been validated.
+'''    
+def SendEmail(
+    To: list = [],
+    CC: list = [],
+    Subject: str = None,
+    Body: str = None,
+    HTMLBody: str = None,
+    Attachments: list = [],
+    UseApplication: str = None,
+) -> None:
+
+    if not isinstance(To, list):
+        raise TypeError("To value must be a list.")
+    if CC and not isinstance(CC, list):
+        raise TypeError("CC value must be a list")
+    if not isinstance(Subject, str):
+        raise TypeError("Subject value must be a string.")
+    if not isinstance(Body, str):
+        raise TypeError("Body value must be a string.")
+    if HTMLBody and not isinstance(HTMLBody, str):
+        raise TypeError("HTMLBody value must be a string.")
+    if not all(isinstance(attachment, str) for attachment in Attachments):
+        raise TypeError(
+            "Attachments value must be a list of strings representing file paths."
+        )
+    if not isinstance(UseApplication, str):
+        raise TypeError("UseApplication value must be a string.")
+
+    if Body and HTMLBody:
+        raise Exception(
+            "Body value will be overwritten by HTMLBody value. Check parameters."
+        )
+
+    if UseApplication:
+        import win32com.client as win32
+
+        outlook = win32.Dispatch(UseApplication)
+        mail = outlook.CreateItem(0)
+        mail.To = ";".join(To)
+        mail.CC = ";".join(CC)
+        mail.Subject = Subject
+        mail.Body = Body
+        if HTMLBody:
+            mail.HTMLBody = HTMLBody
+
+        for attachment in Attachments:
+            mail.Attachments.Add(attachment)
+
+        mail.Send()

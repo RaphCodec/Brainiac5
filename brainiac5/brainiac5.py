@@ -243,12 +243,16 @@ Only outlook application on Windows has been validated.
 '''    
 def SendEmail(
     To: list = [],
+    From: str = None,
+    FromMask:str = None,
     CC: list = [],
     Subject: str = None,
     Body: str = None,
     HTMLBody: str = None,
     Attachments: list = [],
     UseApplication: str = None,
+    SMTPServer:str = None,
+    port: int = 25
 ) -> None:
 
     if not isinstance(To, list):
@@ -265,8 +269,7 @@ def SendEmail(
         raise TypeError(
             "Attachments value must be a list of strings representing file paths."
         )
-    if not isinstance(UseApplication, str):
-        raise TypeError("UseApplication value must be a string.")
+    
 
     if Body and HTMLBody:
         raise Exception(
@@ -274,6 +277,8 @@ def SendEmail(
         )
 
     if UseApplication:
+        if not isinstance(UseApplication, str):
+            raise TypeError("UseApplication value must be a string.")
         import win32com.client as win32
 
         outlook = win32.Dispatch(UseApplication)
@@ -289,3 +294,34 @@ def SendEmail(
             mail.Attachments.Add(attachment)
 
         mail.Send()
+        
+    if SMTPServer:
+        from smtplib import SMTP
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from os.path import basename, normpath
+
+        
+        message = MIMEMultipart("alternative")
+        message["From"] = FromMask or From
+        message["To"] = ';'.join(To)
+        message["Cc"] = ';'.join(CC)
+        message["Subject"] = Subject
+        message.attach(MIMEText(Body))
+        message.attach(MIMEText(HTMLBody))
+
+        for path in Attachments:
+            with open(path, "r") as f:
+                attachment = MIMEText(f.read())
+                filename = basename(normpath(path))
+                attachment.add_header(
+                    "Content-Disposition", "attachemnt", filename=filename
+                )
+                message.attach(attachment)
+
+        To_All = To + CC # setting variable to send email to all CC included
+
+        with SMTP(host=SMTPServer, port=port) as email_server:
+            email_server.sendemail(
+                from_addr=From, to_addr=To_All, msg=message.as_string()
+            )

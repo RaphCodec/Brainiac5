@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
  
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
  
+## [Unreleased] - 2024-04-11
+ 
+### Changed
+  1. RunQuery split into RunQuery and RunWithChunks.  Error handlign was added to both in order to quickly find thw row(s) with errors when the funtion is run.
+
+  2. PYODBC dropped as a requirement.  The lirbary is validated using PYODBC, but there are plans to integrate other liraries such as sqlalchemy
+
+  3. Loguru replaces colorama and warnings libraries for simpler log messages.
+ 
 ## [Unreleased] - 2024-03-31
  
 ### Changed

@@ -15,6 +15,7 @@ def DecimalCount(value):
         after_decimal = 0
     return pd.Series({"Max_Before": before_decimal, "Max_After": after_decimal})
 
+
 def IntType(column):
     """
     Checking for integer data types and their respective ranges:
@@ -72,6 +73,7 @@ def IntType(column):
     else:
         return "BIGINT"
 
+
 def RunQuery(
     df,
     query: str,
@@ -81,7 +83,7 @@ def RunQuery(
     BarDesc: str = "Processing rows",
     BarColor: str = "green",
 ) -> None:
-    
+
     cursor = conn.cursor()
 
     cursor.fast_executemany = True
@@ -100,6 +102,28 @@ def RunQuery(
         pbar.close()
         return
 
+    RunWithChunks(
+        df,
+        query=query,
+        conn=conn,
+        cursor=cursor,
+        ChunkSize=ChunkSize,
+        BarDesc=BarDesc,
+        BarColor=BarColor,
+    )
+
+    return
+
+
+def RunWithChunks(
+    df,
+    query: str,
+    conn,
+    cursor,
+    ChunkSize: int = 20_00,
+    BarDesc: str = "Processing rows",
+    BarColor: str = "green",
+):
     # Get the total number of rows for the progress bar
     total_rows = len(df)
 
@@ -133,6 +157,7 @@ def RunQuery(
     # Close the progress bar after completion or error
     pbar.close()
     return
+
 
 class Query:
     __slots__ = ("df", "table", "save", "path")

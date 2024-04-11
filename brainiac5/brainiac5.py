@@ -1,5 +1,4 @@
 import pandas as pd
-import pyodbc
 from tqdm import tqdm
 from colorama import Fore, Style
 import warnings

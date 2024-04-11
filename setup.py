@@ -16,7 +16,7 @@ setup(
         packages=find_packages(include=['brainiac5']),
         include_package_data=True,
         license='GNU GENERAL PUBLIC LICENSE',
-        install_requires=['pandas>=2.0.3','pyodbc>=4.0.39', 'tqdm>=4.66.1'],
+        install_requires=['pandas>=2.0.3', 'tqdm>=4.66.1'],
         keywords=['Extract', 'Trasform', 'Load', 'SQL', 'Data Transformation', 'Data', 'ETL'],
         classifiers= [
             "Intended Audience :: Developers",

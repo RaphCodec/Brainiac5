@@ -1,7 +1,6 @@
 import pandas as pd
 from tqdm import tqdm
-from colorama import Fore, Style
-import warnings
+from loguru import logger
 
 
 # this fucntion returns the maximum number of digits both before and after the decimal point across all column values
@@ -33,11 +32,8 @@ def IntType(column):
     elif (min_val in range(0, 256) or max_val in range(0, 256)) and (
         min_val not in range(0, 256) or max_val not in range(0, 256)
     ):
-        warnings.warn(
-            Fore.YELLOW
-            + f"\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}"
-            + Style.RESET_ALL,
-            stacklevel=2,
+        logger.warning(
+             f"\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}"
         )
         return "SMALLINT"
     elif min_val in range(-32_768, 32_768) and max_val in range(-32_768, 32_768):
@@ -45,11 +41,8 @@ def IntType(column):
     elif (min_val in range(-32_768, 32_768) or max_val in range(-32_768, 32_768)) and (
         min_val not in range(-32_768, 32_768) or max_val not in range(-32_768, 32_768)
     ):
-        warnings.warn(
-            Fore.YELLOW
-            + f"\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}"
-            + Style.RESET_ALL,
-            stacklevel=2,
+        logger.warning(
+             f"\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}"
         )
         return "INT"
     elif min_val in range(-2_147_483_648, 2_147_483_648) and max_val in range(
@@ -63,11 +56,8 @@ def IntType(column):
         min_val not in range(-2_147_483_648, 2_147_483_648)
         or max_val not in range(-2_147_483_648, 2_147_483_648)
     ):
-        warnings.warn(
-            Fore.YELLOW
-            + f"\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}"
-            + Style.RESET_ALL,
-            stacklevel=2,
+        logger.warning(
+             f"\nWARNING: Potential outlier in column: {column.name}. Max Number: {max_val}. Min Number: {min_val}"
         )
         return "BIGINT"
     else:
@@ -89,17 +79,28 @@ def RunQuery(
     cursor.fast_executemany = True
 
     if NoChunking:
-        total_rows = len(df)
-        pbar = tqdm(range(total_rows), desc=BarDesc, unit="row", colour=BarColor)
-        cursor.executemany(query, df.values.tolist())
-        conn.commit()
-        pbar.update(total_rows)
-        pbar.set_postfix_str(
-            Fore.GREEN
-            + f"Completed: Processed {total_rows}/{total_rows} rows"
-            + Style.RESET_ALL
-        )
-        pbar.close()
+        try:
+            total_rows = len(df)
+            pbar = tqdm(range(total_rows), desc=BarDesc, unit="row", colour=BarColor)
+            cursor.executemany(query, df.values.tolist())
+            conn.commit()
+            pbar.update(total_rows)
+            pbar.set_postfix_str(
+                Fore.GREEN
+                + f"Completed: Processed {total_rows}/{total_rows} rows"
+                + Style.RESET_ALL
+            )
+            pbar.close()
+        except Exception as e:
+            logger.error(f'Error in RunQuery: \n{e}\n\n Attempting to find row with error.')
+            RunWithChunks(df,
+                query=query,
+                conn=conn,
+                cursor=cursor,
+                ChunkSize=1,
+                BarDesc="Finding Errors",
+                BarColor="red",
+                )
         return
 
     RunWithChunks(
@@ -142,17 +143,6 @@ def RunWithChunks(
 
             # Update the progress bar for each iteration
             pbar.update(ChunkSize)
-
-            # Update the progress bar description dynamically
-            processed_rows = min(pbar.n, total_rows)
-            pbar.set_postfix_str(f"Processed {processed_rows}/{total_rows} rows")
-
-        # If successfully completed, set the progress bar to green
-        pbar.set_postfix_str(
-            Fore.GREEN
-            + f"Completed: Processed {total_rows}/{total_rows} rows"
-            + Style.RESET_ALL
-        )
 
     # Close the progress bar after completion or error
     pbar.close()

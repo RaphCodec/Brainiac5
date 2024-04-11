@@ -89,7 +89,7 @@ def RunQuery(
             pbar.close()
         except Exception as e:
             logger.error(f'Error in RunQuery: Switching to Chunking Method.')
-            batch = RunWithChunks(df,
+            RunWithChunks(df,
                 query=query,
                 conn=conn,
                 cursor=cursor,
@@ -98,7 +98,6 @@ def RunQuery(
                 BarColor="red",
                 SaveErrors = SaveErrors,
                 )
-            return batch
         return
 
     RunWithChunks(

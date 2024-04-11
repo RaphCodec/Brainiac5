@@ -70,12 +70,13 @@ def RunQuery(
     conn,
     ChunkSize: int = 20_000,
     NoChunking: bool = False,
+    NoChunkingErrorSize: int = 1,
     BarDesc: str = "Processing rows",
     BarColor: str = "green",
+    SaveErrors: bool = False,
 ) -> None:
 
     cursor = conn.cursor()
-
     cursor.fast_executemany = True
 
     if NoChunking:
@@ -85,22 +86,19 @@ def RunQuery(
             cursor.executemany(query, df.values.tolist())
             conn.commit()
             pbar.update(total_rows)
-            pbar.set_postfix_str(
-                Fore.GREEN
-                + f"Completed: Processed {total_rows}/{total_rows} rows"
-                + Style.RESET_ALL
-            )
             pbar.close()
         except Exception as e:
-            logger.error(f'Error in RunQuery: \n{e}\n\n Attempting to find row with error.')
-            RunWithChunks(df,
+            logger.error(f'Error in RunQuery: Switching to Chunking Method.')
+            batch = RunWithChunks(df,
                 query=query,
                 conn=conn,
                 cursor=cursor,
-                ChunkSize=1,
+                ChunkSize=NoChunkingErrorSize,
                 BarDesc="Finding Errors",
                 BarColor="red",
+                SaveErrors = SaveErrors,
                 )
+            return batch
         return
 
     RunWithChunks(
@@ -111,6 +109,7 @@ def RunQuery(
         ChunkSize=ChunkSize,
         BarDesc=BarDesc,
         BarColor=BarColor,
+        SaveErrors = SaveErrors,
     )
 
     return
@@ -124,6 +123,7 @@ def RunWithChunks(
     ChunkSize: int = 20_00,
     BarDesc: str = "Processing rows",
     BarColor: str = "green",
+    SaveErrors: bool = False,
 ):
     # Get the total number of rows for the progress bar
     total_rows = len(df)
@@ -135,14 +135,21 @@ def RunWithChunks(
     with tqdm(total=total_rows, desc=BarDesc, unit="row", colour=BarColor) as pbar:
         rows_list = df.values.tolist()
         for i in range(0, len(rows_list), ChunkSize):
-            batch = rows_list[i : i + ChunkSize]
-
+            batch = df.iloc[i : i + ChunkSize]
+            
+            try:
             # Execute the query for the current batch
-            cursor.executemany(query, batch)
-            conn.commit()
-
-            # Update the progress bar for each iteration
-            pbar.update(ChunkSize)
+                cursor.executemany(query, batch.values.tolist())
+                conn.commit()
+            
+                # Update the progress bar for each iteration
+                pbar.update(ChunkSize)
+            except Exception as e:
+                pbar.close() #close pbar to make logger print to terminal properly
+                logger.error(f'Error:\n{e}\nBatch with Error:\n{batch}')
+                if SaveErrors:
+                    batch.to_csv('errors.csv')
+                raise
 
     # Close the progress bar after completion or error
     pbar.close()
@@ -327,7 +334,7 @@ class Query:
 
 
 """
-This function is mainly intended to sned script warning and failure emails but can be used for any type of email.
+This function is mainly intended to send script warning and failure emails but can be used for any type of email.
 Only outlook application on Windows has been validated.
 """
 

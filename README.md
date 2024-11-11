@@ -1,3 +1,5 @@
+# THIS PROJECT HAS BEEN ARCHIVED AS OF NOVEMBER 11TH, 2024.  THE PyPI PACKAGE ASSOCAITED WITH THIS PROJECT WILL BE REMOVED WITHIN THE FIRST QUARTER OF 2025.
+
 # Brainiac5
 
 Brainiac5 is a Python package designed to automate basic SQL tasks, allowing for streamlined data engineering development in python. This README provides an overview of the package's features, usage instructions, and planned enhancements.
